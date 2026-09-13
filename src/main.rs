@@ -29,6 +29,29 @@ fn get_output_path(source: &PathBuf) -> PathBuf {
     output
 }
 
+// tells if the file need to compile again
+fn needs_rebuild(source: &Path, object: &Path) -> bool {
+    if !object.exists() {
+        return true;
+    }
+
+    let source_time = fs::metadata(source)
+        .unwrap()
+        .modified()
+        .unwrap();
+
+    let object_time = fs::metadata(object)
+        .unwrap()
+        .modified()
+        .unwrap();
+
+    if source_time > object_time {
+        return true;
+    }
+
+    false
+}
+
 // function to compile every file
 fn compile(source: &Path, output: &Path, compiler: &str) {
     println!("Compiling {:?}", source);
@@ -67,7 +90,12 @@ fn main() {
                     // println!("compiling: {}", compiler);
                     //
                     let output = get_output_path(&path);
-                    compile(&path, &output, compiler);
+
+                    if needs_rebuild(&path, &output) {
+                        compile(&path, &output, compiler);
+                    } else {
+                        println!("Skipping {:?}", path);
+                    }
 
 
                 }
