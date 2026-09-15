@@ -52,14 +52,26 @@ fn needs_rebuild(source: &Path, object: &Path) -> bool {
     false
 }
 
+fn get_dependencies(contents: &str) -> Vec<&str> {
+    let contents = contents.replace("\\\n", " ");
+    let parts: Vec<&str> = contents.split(':').collect();
+
+    if parts.len()<2 {
+        return Vec::new();
+    }
+
+    let dependencies = parts[1];
+    dependencies.split_whitespace().collect()
+}
+
 // function to compile every file
 fn compile(source: &Path, output: &Path, compiler: &str) {
     println!("Compiling {:?}", source);
 
     let status = Command::new(compiler)
-        .args([
-            "-c",
-        ])
+        .arg("-MMD")
+        .arg("-MP")
+        .arg("-c")
         .arg(source)
         .arg("-o")
         .arg(output)
