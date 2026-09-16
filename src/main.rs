@@ -30,7 +30,7 @@ fn get_output_path(source: &PathBuf) -> PathBuf {
 }
 
 
-fn get_dependencies(contents: &str) -> Vec<&str> {
+fn get_dependencies(contents: &str) -> Vec<String> {
     let contents = contents.replace("\\\n", " ");
     let parts: Vec<&str> = contents.split(':').collect();
 
@@ -50,23 +50,14 @@ fn get_dependency_path(object: &Path) -> PathBuf {
 }
 
 // tells if the file need to compile again
-fn needs_rebuild(source: &Path, object: &Path) -> bool {
+fn needs_rebuild(object: &Path) -> bool {
     if !object.exists() {
         return true;
     }
-    let source_time = fs::metadata(source)
-        .unwrap()
-        .modified()
-        .unwrap();
-
     let object_time = fs::metadata(object)
         .unwrap()
         .modified()
         .unwrap();
-
-    if source_time > object_time {
-        return true;
-    }
 
     let dependency_path = get_dependency_path(object);
     if !dependency_path.exists() {
@@ -78,7 +69,7 @@ fn needs_rebuild(source: &Path, object: &Path) -> bool {
     let dependencies = get_dependencies(&contents);
 
     for dependency in dependencies {
-        let dependency_path = Path::new(dependency);
+        let dependency_path = Path::new(&dependency);
         let dependency_time = fs::metadata(dependency_path)
             .unwrap()
             .modified()
@@ -131,7 +122,7 @@ fn main() {
                     //
                     let output = get_output_path(&path);
 
-                    if needs_rebuild(&path, &output) {
+                    if needs_rebuild(&output) {
                         compile(&path, &output, compiler);
                     } else {
                         println!("Skipping {:?}", path);
