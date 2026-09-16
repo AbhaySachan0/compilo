@@ -29,12 +29,31 @@ fn get_output_path(source: &PathBuf) -> PathBuf {
     output
 }
 
+
+fn get_dependencies(contents: &str) -> Vec<&str> {
+    let contents = contents.replace("\\\n", " ");
+    let parts: Vec<&str> = contents.split(':').collect();
+
+    if parts.len()<2 {
+        return Vec::new();
+    }
+
+    let dependencies = parts[1];
+    dependencies.split_whitespace().map(String::from).collect()
+}
+
+fn get_dependency_path(object: &Path) -> PathBuf {
+    let mut dependency = object.to_path_buf();
+    dependency.set_extension("d");
+
+    dependency
+}
+
 // tells if the file need to compile again
 fn needs_rebuild(source: &Path, object: &Path) -> bool {
     if !object.exists() {
         return true;
     }
-
     let source_time = fs::metadata(source)
         .unwrap()
         .modified()
@@ -49,19 +68,28 @@ fn needs_rebuild(source: &Path, object: &Path) -> bool {
         return true;
     }
 
-    false
-}
-
-fn get_dependencies(contents: &str) -> Vec<&str> {
-    let contents = contents.replace("\\\n", " ");
-    let parts: Vec<&str> = contents.split(':').collect();
-
-    if parts.len()<2 {
-        return Vec::new();
+    let dependency_path = get_dependency_path(object);
+    if !dependency_path.exists() {
+        return true;
     }
 
-    let dependencies = parts[1];
-    dependencies.split_whitespace().collect()
+    let contents = fs::read_to_string(&dependency_path).unwrap();
+
+    let dependencies = get_dependencies(&contents);
+
+    for dependency in dependencies {
+        let dependency_path = Path::new(dependency);
+        let dependency_time = fs::metadata(dependency_path)
+            .unwrap()
+            .modified()
+            .unwrap();
+
+        if dependency_time > object_time {
+            return true;
+        }
+    }
+
+    false
 }
 
 // function to compile every file
