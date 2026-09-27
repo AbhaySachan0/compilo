@@ -20,8 +20,15 @@ struct Project {
 }
 
 fn read_config() -> Config {
-    let contents = fs::read_to_string("test_project/compilo.toml").unwrap();
 
+    let contents = match fs::read_to_string("compilo.toml") {
+        Ok(contents) => contents,
+        Err(_) => {
+            println!("Error: compilo.toml not found.");
+            println!("Run `compilo init` to create a project.");
+            std::process::exit(1);
+        }
+    };
     let config: Config = toml::from_str(&contents).unwrap();
 
     config
@@ -161,11 +168,66 @@ fn link(objects: &[PathBuf], output: &Path) {
     }
 }
 
+fn init_project(is_c: bool) {
+    fs::create_dir_all("src").unwrap();
+    fs::create_dir_all("build").unwrap();
+
+    fs::write(
+        "compilo.toml",
+        r#"[project]
+name = "my_project"
+source = "src"
+build = "build"
+"#,
+    )
+    .unwrap();
+
+    if is_c {
+        fs::write(
+            "src/main.c",
+            r#"#include <stdio.h>
+
+int main() {
+    printf("Hello from Compilo!\n");
+    return 0;
+}
+"#,
+        )
+        .unwrap();
+
+        println!("Created C project");
+    } else {
+        fs::write("src/main.cpp",
+            r#"#include <iostream>
+
+int main() {
+    std::cout << "Hello from Compilo!\n";
+    return 0;
+}
+"#,
+        )
+        .unwrap();
+
+        println!("Created C++ project");
+    }
+    println!("Created compilo.toml");
+    println!("Created src/");
+    println!("Created build/");
+}
+
 
 
 fn main() {
-    println!("Compilo build System\n");
 
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() > 1 && args[1] =="init" {
+        let is_c = args.len() >2 && args[2] == "--c";
+        init_project(is_c);
+        return;
+    }
+
+    println!("Building project...");
     let config = read_config();
 
     let project_dir = PathBuf::from("test_project");
