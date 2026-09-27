@@ -168,23 +168,29 @@ fn link(objects: &[PathBuf], output: &Path) {
     }
 }
 
-fn init_project(is_c: bool) {
-    fs::create_dir_all("src").unwrap();
-    fs::create_dir_all("build").unwrap();
+fn init_project(is_c: bool, project_name: &str) {
+    let project_dir = PathBuf::from(project_name);
+    fs::create_dir_all(project_dir.join("src")).unwrap();
+    fs::create_dir_all(project_dir.join("build")).unwrap();
 
-    fs::write(
-        "compilo.toml",
+    let config = format!(
         r#"[project]
-name = "my_project"
+name = "{}"
 source = "src"
 build = "build"
-"#,
+"#, 
+        project_name
+    );
+
+    fs::write(
+        project_dir.join("compilo.toml"),
+        config,
     )
     .unwrap();
 
     if is_c {
         fs::write(
-            "src/main.c",
+            project_dir.join("src/main.c"),
             r#"#include <stdio.h>
 
 int main() {
@@ -195,9 +201,10 @@ int main() {
         )
         .unwrap();
 
-        println!("Created C project");
+        println!("Created C project: {}", project_name);
     } else {
-        fs::write("src/main.cpp",
+        fs::write(
+            project_dir.join("src/main.cpp"),
             r#"#include <iostream>
 
 int main() {
@@ -208,12 +215,13 @@ int main() {
         )
         .unwrap();
 
-        println!("Created C++ project");
+        println!("Created C++ project: {}", project_name);
     }
-    println!("Created compilo.toml");
-    println!("Created src/");
-    println!("Created build/");
-}
+
+    println!("Created {}", project_name);
+    println!("Created {}/compilo.toml", project_name);
+    println!("Created {}/src/", project_name);
+    println!("Created {}/build/", project_name);}
 
 fn build_project() {
 
@@ -272,7 +280,23 @@ fn main() {
 
     if args.len() > 1 && args[1] =="init" {
         let is_c = args.len() >2 && args[2] == "--c";
-        init_project(is_c);
+        let project_name;
+
+        if is_c {
+            if args.len() < 4 {
+                println!("Usage: compilo init --c <porject-name>");
+                return;
+            }
+            project_name = &args[3];
+        } else {
+            if args.len() < 3 {
+                println!("Usage: compilo init --c <porject-name>");
+                return;
+            }
+
+            project_name = &args[2];
+        }
+        init_project(is_c, project_name);
         return;
     }
 
