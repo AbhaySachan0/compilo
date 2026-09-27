@@ -215,24 +215,14 @@ int main() {
     println!("Created build/");
 }
 
-
-
-fn main() {
-
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() > 1 && args[1] =="init" {
-        let is_c = args.len() >2 && args[2] == "--c";
-        init_project(is_c);
-        return;
-    }
+fn build_project() {
 
     println!("Building project...");
     let config = read_config();
 
-    let project_dir = PathBuf::from("test_project");
-    let source_dir = project_dir.join(&config.project.source);
-    let build_dir = project_dir.join(&config.project.build);
+    println!("Project: {}", config.project.name);
+    let source_dir = PathBuf::from(&config.project.source);
+    let build_dir = PathBuf::from(&config.project.build);
 
     fs::create_dir_all(&build_dir).unwrap();
 
@@ -266,7 +256,7 @@ fn main() {
 
         }
     }
-    let executable = PathBuf::from("test_project/build/app");
+    let executable = build_dir.join(&config.project.name);
 
     if needs_link(&objects, &executable) {
         link(&objects, &executable);
@@ -274,4 +264,17 @@ fn main() {
         println!("Skipping linking..");
     }
 
+}
+
+fn main() {
+
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() > 1 && args[1] =="init" {
+        let is_c = args.len() >2 && args[2] == "--c";
+        init_project(is_c);
+        return;
+    }
+
+    build_project();
 }
