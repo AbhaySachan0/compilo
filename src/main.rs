@@ -99,6 +99,29 @@ fn compile(source: &Path, output: &Path, compiler: &str) {
     println!("Finished : {:?}\n", status);
 }
 
+fn needs_link(objects: &[PathBuf], executable: &Path) -> bool {
+    if !executable.exists() {
+        return true;
+    }
+
+    let executable_time = fs::metadata(executable)
+        .unwrap()
+        .modified()
+        .unwrap();
+
+    for object in objects {
+        let object_time = fs::metadata(object)
+            .unwrap()
+            .modified()
+            .unwrap();
+
+        if object_time > executable_time {
+            return true;
+        }
+    }
+    return false;
+}
+
 fn link(objects: &[PathBuf], output: &Path) {
     println!("Linking -> {:?}", output);
 
@@ -153,6 +176,11 @@ fn main() {
         }
     }
     let executable = PathBuf::from("test_project/build/app");
-    link(&objects, &executable);
+
+    if needs_link(&objects, &executable) {
+        link(&objects, &executable);
+    } else {
+        println!("Skipping linking..");
+    }
 
 }
