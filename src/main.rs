@@ -153,10 +153,10 @@ fn needs_link(objects: &[PathBuf], executable: &Path) -> bool {
     return false;
 }
 
-fn link(objects: &[PathBuf], output: &Path) {
+fn link(objects: &[PathBuf], output: &Path, linker: &str) {
     println!("Linking -> {:?}", output);
 
-    let status = Command::new("g++")
+    let status = Command::new(linker)
         .args(objects)
         .arg("-o")
         .arg(output)
@@ -235,6 +235,7 @@ fn build_project() {
     fs::create_dir_all(&build_dir).unwrap();
 
     let mut objects = Vec::new();
+    let mut linker = "g++";
     let entries = fs::read_dir(&source_dir).unwrap();
 
     for entry in entries {
@@ -245,6 +246,10 @@ fn build_project() {
             if let Some(extension) = extension.to_str() {
 
                 if let Some(compiler) = get_compiler(extension) {
+
+                    if extension == "c" {
+                        linker = "gcc";
+                    }
                     // println!("{:?} -> {}", path, compiler);
                     // println!("Found: {:?}", path);
                     // println!("compiling: {}", compiler);
@@ -267,7 +272,7 @@ fn build_project() {
     let executable = build_dir.join(&config.project.name);
 
     if needs_link(&objects, &executable) {
-        link(&objects, &executable);
+        link(&objects, &executable, linker);
     } else {
         println!("Skipping linking..");
     }
