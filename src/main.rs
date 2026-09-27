@@ -99,12 +99,29 @@ fn compile(source: &Path, output: &Path, compiler: &str) {
     println!("Finished : {:?}\n", status);
 }
 
+fn link(objects: &[PathBuf], output: &Path) {
+    println!("Linking -> {:?}", output);
+
+    let status = Command::new("g++")
+        .args(objects)
+        .arg("-o")
+        .arg(output)
+        .status()
+        .unwrap();
+
+    if !status.success() {
+        println!("Linking failed..");
+    }
+}
+
 
 
 fn main() {
     println!("Compilo build System\n");
 
     fs::create_dir_all("test_project/build").unwrap();
+
+    let mut objects = Vec::new();
 
     let entries = fs::read_dir("test_project/src").unwrap();
 
@@ -121,6 +138,7 @@ fn main() {
                     // println!("compiling: {}", compiler);
                     //
                     let output = get_output_path(&path);
+                    objects.push(output.clone());
 
                     if needs_rebuild(&output) {
                         compile(&path, &output, compiler);
@@ -133,7 +151,8 @@ fn main() {
             }
 
         }
-
     }
+    let executable = PathBuf::from("test_project/build/app");
+    link(&objects, &executable);
 
 }
